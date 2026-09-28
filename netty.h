@@ -15,6 +15,15 @@ typedef struct {
 } http_param_t;
 
 typedef struct {
+    const char *name;
+    size_t name_len;
+    const char *value;
+    size_t value_len;
+} http_header_t;
+
+typedef struct {
+    char client_ip[16];
+
     const char *method;
     size_t method_len;
     
@@ -31,12 +40,18 @@ typedef struct {
     
     http_param_t params[10];
     int param_count;
+
+    http_header_t headers[32];
+    int header_count;
 } http_request_t;
 
 typedef struct{
     int status_code;
     const char *content_type;
     int headers_sent;
+    
+    struct { const char *name; const char *value; } headers[16];
+    int header_count;
 } http_response_writer_t;
 
 typedef struct http_context {
@@ -44,6 +59,7 @@ typedef struct http_context {
     int client_fd;
     http_request_t req;
     http_response_writer_t res;
+    void *user_data;
     void **handlers;
     int handler_count;
     int current_index;
@@ -77,6 +93,15 @@ void http_serve_file(http_context_t *ctx, const char *filepath, const char *cont
 
 const char *http_get_param(http_context_t *ctx, const char *key, size_t *outlen);
 const char *http_get_query(http_context_t *ctx, const char *key, size_t *outlen);
+
+const char* http_get_header(http_context_t *ctx, const char *key, size_t *out_len);
+void http_set_header(http_context_t *ctx, const char *key, const char *value);
+
+void http_serve_file(http_context_t *ctx, const char *filepath, const char *content_type);
+void http_serve_dir(http_context_t *ctx, const char *url_prefix, const char *fs_path);
+
+void http_init_rate_limiter(int max_reqs, int window_sec);
+void http_rate_limit_middleware(http_context_t *ctx);
 
 
 #endif
